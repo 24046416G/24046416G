@@ -2,7 +2,7 @@
   <img width="100%" src="assets/sunset-pixel-art.png" alt="banner" />
 </div>
 
-## Hi there 👋
+## Hi there JING 👋
 
 I'm a passionate developer who loves creating and exploring new technologies.
 
