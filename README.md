@@ -1,5 +1,5 @@
-<div align="center" style="position: relative;">
-  <img width="100%" src="assets/Japan1.gif" alt="banner" style="position: relative; z-index: 0;" />
+<div>
+  <img width="100%" src="assets/Japan1.gif" alt="banner"/>
 </div>
 
 ###
