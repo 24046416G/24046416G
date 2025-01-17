@@ -13,6 +13,8 @@
 
 <br clear="both">
 
-<img src="https://raw.githubusercontent.com/24046416G/24046416G/output/snake.svg" alt="Snake animation" />
+<div align="center">
+  <img src="https://github.com/24046416G/24046416G/blob/main/dist/github-contribution-grid-snake.svg" alt="Snake animation" />
+</div>
 
 ###
