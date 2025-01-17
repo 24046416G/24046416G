@@ -28,6 +28,16 @@ jobs:
           outputs: |
             dist/github-contribution-grid-snake.svg
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+          svg_out_path: dist/github-contribution-grid-snake.svg
+          snake_color: '#3DDC84'
+          date_format: YYYY-MM-DD
+          timezone: Asia/Shanghai
+          max_contributions_per_day: 30
+          graph_width: 1200
+          graph_height: 200
+          use_full_contribution_graph: true
+          total_contributions_count: true
+          include_past_contributions: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
