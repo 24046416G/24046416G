@@ -14,7 +14,7 @@
 <br clear="both">
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/24046416G/24046416G/output/github-snake.svg" alt="Snake animation" />
+  <img src="https://raw.githubusercontent.com/24046416G/24046416G/output/ocean.gif" alt="Snake animation" />
 </div>
 
 ###
