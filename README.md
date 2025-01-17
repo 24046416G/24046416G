@@ -1,3 +1,3 @@
 <div align="center">
-  <img width="100%" src="assets/Japan.gif" alt="banner" />
+  <img width="100%" src="assets/Japan1.gif" alt="banner" />
 </div>
