@@ -8,8 +8,6 @@
   <img width="100%" src="assets/Japan1.gif" alt="banner"/>
 </div>
 
-:[](https://raw.githubusercontent.com/24046416G/24046416G/refs/heads/output/github-contribution-grid-snake-dark.svg)
-
 <br clear="both">
 
 <div align="center">
