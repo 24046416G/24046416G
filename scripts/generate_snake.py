@@ -264,7 +264,7 @@ def _choose_food_target(
 
 def make_snake_path(
     cells: dict[Point, int], columns: int
-) -> tuple[list[Point], dict[Point, int], dict[Point, list[tuple[int, int]]], set[Point], set[Point]]:
+) -> tuple[list[Point], dict[Point, int], list[tuple[Point, ...]]]:
     food = {point for point, level in cells.items() if level > 0}
     signature = ",".join(
         f"{x}:{y}:{level}"
@@ -275,9 +275,8 @@ def make_snake_path(
     neighbors = _make_neighbor_map(columns, rng)
 
     snake = _initial_snake(columns, food, rng)
-    initial_body = set(list(snake)[:-1])
-    body_started = {point: 0 for point in initial_body}
-    body_intervals: dict[Point, list[tuple[int, int]]] = {}
+    # Body positions are ordered from the neck toward the tail at each head step.
+    body_states = [tuple(reversed(list(snake)[:-1]))]
     remaining_food = set(food)
     eaten_at: dict[Point, int] = {}
     growth_progress = 0
@@ -316,23 +315,17 @@ def make_snake_path(
             growth_progress = 0 if grows else growth_progress + 1
 
         if not grows:
-            tail = snake.popleft()
-            start = body_started.pop(tail, None)
-            if start is not None:
-                body_intervals.setdefault(tail, []).append((start, step))
+            snake.popleft()
 
-        old_head = snake[-1]
-        body_started[old_head] = step
         snake.append(next_point)
         path.append(next_point)
+        body_states.append(tuple(reversed(list(snake)[:-1])))
 
     if len(path) == 1:
         path.append(path[0])
-    final_step = len(path) - 1
-    for point, start in body_started.items():
-        body_intervals.setdefault(point, []).append((start, final_step))
+        body_states.append(body_states[-1])
 
-    return path, eaten_at, body_intervals, initial_body, set(list(snake)[:-1])
+    return path, eaten_at, body_states
 
 
 def pct(value: float) -> str:
@@ -342,11 +335,10 @@ def pct(value: float) -> str:
 def build_svg(
     cells: dict[tuple[int, int], int], columns: int, palette: dict[str, object]
 ) -> str:
-    path, eaten_at, body_intervals, initial_body, final_body = make_snake_path(cells, columns)
+    path, eaten_at, body_states = make_snake_path(cells, columns)
     steps = max(1, len(path) - 1)
     duration_ms = max(DURATION_MS, steps * 75)
-    step_pct = PLAY_END / steps
-    epsilon = min(FRAME_EPSILON, step_pct / 4)
+    epsilon = min(FRAME_EPSILON, PLAY_END / steps / 4)
     levels = palette["levels"]
     empty_color = palette["empty"]
     snake_color = palette["snake"]
@@ -364,6 +356,7 @@ def build_svg(
 
     grid_elements: list[str] = []
     body_elements: list[str] = []
+    max_body_segments = max(map(len, body_states), default=0)
     for y in range(ROWS):
         for x in range(columns):
             point = (x, y)
@@ -396,33 +389,66 @@ def build_svg(
                 else:
                     styles.append(f".cell-{x}-{y}{{fill:{color_var}}}")
 
-            body_frames = [f"0%{{opacity:{1 if point in initial_body else 0}}}"]
-            for start, end in body_intervals.get(point, []):
-                if start > 0:
-                    enter_time = start / steps * PLAY_END
-                    body_frames.append(f"{pct(max(0, enter_time - epsilon))}{{opacity:0}}")
-                    body_frames.append(f"{pct(min(PLAY_END, enter_time + epsilon))}{{opacity:1}}")
-                if end < steps:
-                    leave_time = end / steps * PLAY_END
-                    body_frames.append(f"{pct(max(0, leave_time - epsilon))}{{opacity:1}}")
-                    body_frames.append(f"{pct(min(PLAY_END, leave_time + epsilon))}{{opacity:0}}")
-            body_frames.extend(
-                (
-                    f"{pct(FADE_START)}{{opacity:{1 if point in final_body else 0}}}",
-                    f"{pct(FADE_END)}{{opacity:0}}",
-                    f"{pct(RESET_END - FRAME_EPSILON)}{{opacity:0}}",
-                    f"100%{{opacity:{1 if point in initial_body else 0}}}",
+    initial_body = body_states[0]
+    final_body = body_states[-1]
+    for segment in range(max_body_segments):
+        first_step = next(
+            (step for step, state in enumerate(body_states) if segment < len(state)),
+            None,
+        )
+        if first_step is None:
+            continue
+
+        first_position = body_states[first_step][segment]
+        initial_position = (
+            initial_body[segment] if segment < len(initial_body) else first_position
+        )
+        initial_x, initial_y = initial_position
+        body_frames = [
+            f"0%{{transform:translate({initial_x * CELL_SIZE}px,{initial_y * CELL_SIZE}px);"
+            f"opacity:{1 if segment < len(initial_body) else 0}}}"
+        ]
+
+        for step, state in enumerate(body_states[1:], start=1):
+            if segment >= len(state):
+                continue
+
+            x, y = state[segment]
+            time = step / steps * PLAY_END
+            if segment >= len(body_states[step - 1]):
+                body_frames.append(
+                    f"{pct(max(0, time - epsilon))}{{"
+                    f"transform:translate({x * CELL_SIZE}px,{y * CELL_SIZE}px);opacity:0}}"
                 )
+                body_frames.append(
+                    f"{pct(min(PLAY_END, time + epsilon))}{{"
+                    f"transform:translate({x * CELL_SIZE}px,{y * CELL_SIZE}px);opacity:1}}"
+                )
+            else:
+                body_frames.append(
+                    f"{pct(time)}{{"
+                    f"transform:translate({x * CELL_SIZE}px,{y * CELL_SIZE}px);opacity:1}}"
+                )
+
+        final_x, final_y = final_body[segment]
+        body_frames.extend(
+            (
+                f"{pct(FADE_START)}{{"
+                f"transform:translate({final_x * CELL_SIZE}px,{final_y * CELL_SIZE}px);opacity:1}}",
+                f"{pct(FADE_END)}{{opacity:0}}",
+                f"{pct(RESET_END - FRAME_EPSILON)}{{opacity:0}}",
+                f"100%{{transform:translate({initial_x * CELL_SIZE}px,{initial_y * CELL_SIZE}px);"
+                f"opacity:{1 if segment < len(initial_body) else 0}}}",
             )
-            styles.append(
-                f"@keyframes body-{x}-{y}{{{''.join(body_frames)}}}"
-                f".body-{x}-{y}{{animation:body-{x}-{y} {duration_ms}ms linear infinite}}"
-            )
-            body_elements.append(
-                f'<rect class="body body-{x}-{y}" x="{x * CELL_SIZE + 2}" '
-                f'y="{y * CELL_SIZE + 2}" width="{DOT_SIZE}" height="{DOT_SIZE}" '
-                'rx="2" ry="2"/>'
-            )
+        )
+        styles.append(
+            f"@keyframes body-{segment}{{{''.join(body_frames)}}}"
+            f".body-{segment}{{animation:body-{segment} {duration_ms}ms linear infinite}}"
+        )
+        body_elements.append(
+            f'<rect class="body body-{segment}" x="2" y="2" width="{DOT_SIZE}" '
+            f'height="{DOT_SIZE}" rx="2" ry="2"/>'
+        )
 
     head_frames = []
     for step, (x, y) in enumerate(path):
