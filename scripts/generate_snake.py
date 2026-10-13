@@ -375,23 +375,26 @@ def build_svg(
                 'rx="2" ry="2"/>'
             )
 
-            if level > 0 and point in eaten_at:
+            if level > 0:
                 color_var = f"var(--c{level})"
-                eat_time = eaten_at[point] / steps * PLAY_END
-                if eaten_at[point] == 0:
-                    eat_frames = "0%{fill:var(--ce)}"
-                else:
-                    eat_frames = (
-                        f"0%,{pct(max(0, eat_time - epsilon))}{{fill:{color_var}}}"
-                        f"{pct(min(PLAY_END, eat_time + epsilon))}{{fill:var(--ce)}}"
+                if point in eaten_at:
+                    eat_time = eaten_at[point] / steps * PLAY_END
+                    if eaten_at[point] == 0:
+                        eat_frames = "0%{fill:var(--ce)}"
+                    else:
+                        eat_frames = (
+                            f"0%,{pct(max(0, eat_time - epsilon))}{{fill:{color_var}}}"
+                            f"{pct(min(PLAY_END, eat_time + epsilon))}{{fill:var(--ce)}}"
+                        )
+                    styles.append(
+                        f"@keyframes eat-{x}-{y}{{{eat_frames}"
+                        f"{pct(RESET_END - FRAME_EPSILON)}{{fill:var(--ce)}}"
+                        f"100%{{fill:{color_var}}}}}"
+                        f".cell-{x}-{y}{{fill:{color_var};animation:eat-{x}-{y} "
+                        f"{duration_ms}ms linear infinite}}"
                     )
-                styles.append(
-                    f"@keyframes eat-{x}-{y}{{{eat_frames}"
-                    f"{pct(RESET_END - FRAME_EPSILON)}{{fill:var(--ce)}}"
-                    f"100%{{fill:{color_var}}}}}"
-                    f".cell-{x}-{y}{{fill:{color_var};animation:eat-{x}-{y} "
-                    f"{duration_ms}ms linear infinite}}"
-                )
+                else:
+                    styles.append(f".cell-{x}-{y}{{fill:{color_var}}}")
 
             body_frames = [f"0%{{opacity:{1 if point in initial_body else 0}}}"]
             for start, end in body_intervals.get(point, []):
